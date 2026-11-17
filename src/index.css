@@ -1,0 +1,235 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+html,
+body {
+  background: #0e0f11;
+  color: #e8eaed;
+  font-family: Inter, system-ui, sans-serif;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  overscroll-behavior-y: none;
+  font-feature-settings: "tnum" 1, "cv11" 1;
+}
+
+@layer components {
+  .campo {
+    @apply w-full rounded-xl border border-line bg-s2 px-3.5 py-3 text-[15px] text-ink outline-none transition placeholder:text-dim focus:border-neon/60 focus:ring-2 focus:ring-neon/15;
+  }
+  textarea.campo {
+    @apply min-h-[88px] resize-y leading-relaxed;
+  }
+  select.campo {
+    @apply appearance-none pr-9;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%238B9098' stroke-width='2' viewBox='0 0 24 24'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+  }
+  .rotulo {
+    @apply mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.08em] text-mute;
+  }
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold transition active:scale-[.98] disabled:pointer-events-none disabled:opacity-40;
+  }
+  .btn-neon {
+    @apply btn bg-neon text-fundo hover:brightness-110;
+  }
+  .btn-sec {
+    @apply btn border border-line bg-s2 text-ink hover:border-mute;
+  }
+  .btn-perigo {
+    @apply btn border border-quente/40 bg-quente/10 text-quente hover:bg-quente/20;
+  }
+  .btn-ghost {
+    @apply btn text-mute hover:text-ink;
+  }
+  .chip {
+    @apply inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border border-line bg-s2 px-3 py-1.5 text-[13px] text-mute transition;
+  }
+  .chip-on {
+    @apply border-neon/60 bg-neon/10 text-neon;
+  }
+  .cartao {
+    @apply rounded-2xl border border-line bg-s1;
+  }
+  .titulo-sec {
+    @apply font-display text-[11px] font-extrabold uppercase tracking-[0.18em] text-mute;
+  }
+  .foco:focus-visible,
+  button:focus-visible,
+  a:focus-visible {
+    @apply outline-none ring-2 ring-neon/70 ring-offset-2 ring-offset-fundo;
+  }
+}
+
+/* ---------- termômetro (assinatura do app) ---------- */
+.termometro {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 48px;
+  background: transparent;
+  cursor: pointer;
+  touch-action: pan-y;
+}
+.termometro::-webkit-slider-runnable-track {
+  height: 16px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #4cc2ff 0%, #78c8dc 36%, #ffb020 55%, #ff6e32 76%, #ff3d3d 100%);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+.termometro::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 38px;
+  height: 38px;
+  margin-top: -11px;
+  border-radius: 50%;
+  background: #0e0f11;
+  border: 5px solid var(--cor, #fff);
+  box-shadow: 0 0 0 5px rgba(255, 255, 255, 0.06), 0 0 24px var(--cor, transparent);
+  transition: border-color 0.15s;
+}
+.termometro::-moz-range-track {
+  height: 16px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #4cc2ff 0%, #78c8dc 36%, #ffb020 55%, #ff6e32 76%, #ff3d3d 100%);
+}
+.termometro::-moz-range-thumb {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: #0e0f11;
+  border: 5px solid var(--cor, #fff);
+  box-shadow: 0 0 24px var(--cor, transparent);
+}
+.termometro:focus-visible {
+  outline: none;
+}
+.termometro:focus-visible::-webkit-slider-thumb {
+  outline: 2px solid #39ff14;
+  outline-offset: 3px;
+}
+
+/* ---------- utilidades ---------- */
+.pb-nav {
+  padding-bottom: calc(env(safe-area-inset-bottom) + 96px);
+}
+.pb-safe {
+  padding-bottom: calc(env(safe-area-inset-bottom) + 12px);
+}
+.pt-safe {
+  padding-top: env(safe-area-inset-top);
+}
+.sem-barra::-webkit-scrollbar {
+  display: none;
+}
+.sem-barra {
+  scrollbar-width: none;
+}
+.rolagem::-webkit-scrollbar {
+  height: 8px;
+  width: 8px;
+}
+.rolagem::-webkit-scrollbar-thumb {
+  background: #2c2f35;
+  border-radius: 8px;
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.toast-in {
+  animation: toast-in 0.22s ease-out;
+}
+
+@keyframes sobe {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: none;
+  }
+}
+.sheet-in {
+  animation: sobe 0.24s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@keyframes pulsar {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 77, 61, 0.55);
+  }
+  50% {
+    box-shadow: 0 0 0 12px rgba(255, 77, 61, 0);
+  }
+}
+.pulsar {
+  animation: pulsar 1.2s infinite;
+}
+
+@keyframes brilho {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+.carregando {
+  animation: brilho 1.4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+/* ---------- mapa escuro ---------- */
+.leaflet-container {
+  background: #0e0f11;
+  font-family: Inter, system-ui, sans-serif;
+}
+.mapa-escuro .leaflet-tile {
+  filter: invert(100%) hue-rotate(180deg) brightness(0.92) contrast(0.88) saturate(0.35);
+}
+.leaflet-popup-content-wrapper,
+.leaflet-popup-tip {
+  background: #1e2024;
+  color: #e8eaed;
+  border: 1px solid #2c2f35;
+}
+.leaflet-popup-content {
+  margin: 12px 14px;
+}
+.leaflet-control-attribution {
+  background: rgba(14, 15, 17, 0.75) !important;
+  color: #8b9098 !important;
+}
+.leaflet-control-attribution a {
+  color: #b9bec6 !important;
+}
+.leaflet-bar a {
+  background: #1e2024 !important;
+  color: #e8eaed !important;
+  border-color: #2c2f35 !important;
+}
