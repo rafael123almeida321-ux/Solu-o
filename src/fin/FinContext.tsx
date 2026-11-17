@@ -17,7 +17,12 @@ export type Tabela =
   | "fin_recurrences"
   | "fin_entries"
   | "fin_tasks"
-  | "fin_reviews";
+  | "fin_reviews"
+  | "rot_blocos"
+  | "rot_registros"
+  | "pes_metas"
+  | "pes_medidas"
+  | "ia_mensagens";
 
 interface Ctx {
   dados: DadosFin;
@@ -30,9 +35,12 @@ interface Ctx {
   salvar: <T extends object>(tabela: Tabela, registro: T & { id?: string }) => Promise<T & { id: string }>;
   inserirVarios: (tabela: Tabela, registros: object[], ignorarDuplicados?: boolean) => Promise<number>;
   apagar: (tabela: Tabela, id: string) => Promise<void>;
+  /** upsert por chave única (ex.: registro do bloco no dia, medida do dia) */
+  registrar: (tabela: Tabela, registro: object, onConflict: string) => Promise<void>;
   ocultar: boolean;
   setOcultar: (v: boolean) => void;
   moduloInstalado: boolean;
+  rotinaInstalada: boolean;
 }
 
 const C = createContext<Ctx | null>(null);
@@ -45,6 +53,7 @@ export function FinProvider({ children }: { children: ReactNode }) {
   const [erro, setErro] = useState<string | null>(null);
   const [atualizadoEm, setAtualizadoEm] = useState<Date | null>(null);
   const [moduloInstalado, setModuloInstalado] = useState(true);
+  const [rotinaInstalada, setRotinaInstalada] = useState(true);
   const [hoje, setHoje] = useState(hojeSP());
   const [ocultar, setOcultarSt] = useState(() => {
     try {
@@ -87,6 +96,14 @@ export function FinProvider({ children }: { children: ReactNode }) {
       q("fin_tasks"),
       q("fin_reviews"),
     ]);
+    // rotina/metas pessoais (migração 002): se ainda não existir no banco, o resto do app segue funcionando
+    const extra = await Promise.all([
+      supabase.from("rot_blocos").select("*").order("inicio"),
+      supabase.from("rot_registros").select("*").gte("data", new Date(Date.now() - 120 * 86_400_000).toISOString().slice(0, 10)).order("data"),
+      q("pes_metas"),
+      supabase.from("pes_medidas").select("*").order("data"),
+    ]);
+    setRotinaInstalada(!extra.some((r) => r.error));
     const falha = res.find((r) => r.error);
     if (falha?.error) {
       const msg = falha.error.message || "";
@@ -97,6 +114,7 @@ export function FinProvider({ children }: { children: ReactNode }) {
     }
     setModuloInstalado(true);
     const [aj, contas, cats, frentes, metas, hist, marcos, dividas, recs, lancs, tarefas, revisoes] = res.map((r) => r.data);
+    const [blocos, registros, metasP, medidas] = extra.map((r) => (r.error ? [] : r.data));
     setDados({
       ajustes: (aj as DadosFin["ajustes"]) ?? null,
       contas: (contas ?? []) as DadosFin["contas"],
@@ -110,6 +128,14 @@ export function FinProvider({ children }: { children: ReactNode }) {
       lancamentos: ((lancs ?? []) as DadosFin["lancamentos"]).map((l) => ({ ...l, valor_centavos: Number(l.valor_centavos) })),
       tarefas: ((tarefas ?? []) as DadosFin["tarefas"]).map((t) => ({ ...t, potencial_caixa_centavos: Number(t.potencial_caixa_centavos) })),
       revisoes: (revisoes ?? []) as DadosFin["revisoes"],
+      blocos: (blocos ?? []) as DadosFin["blocos"],
+      registros: (registros ?? []) as DadosFin["registros"],
+      metasPessoais: ((metasP ?? []) as DadosFin["metasPessoais"]).map((m) => ({
+        ...m,
+        valor_inicial: m.valor_inicial === null ? null : Number(m.valor_inicial),
+        alvo: m.alvo === null ? null : Number(m.alvo),
+      })),
+      medidas: ((medidas ?? []) as DadosFin["medidas"]).map((m) => ({ ...m, valor: Number(m.valor) })),
     });
     setAtualizadoEm(new Date());
     setCarregando(false);
@@ -161,9 +187,18 @@ export function FinProvider({ children }: { children: ReactNode }) {
     [recarregar],
   );
 
+  const registrar = useCallback(
+    async (tabela: Tabela, registro: object, onConflict: string) => {
+      const { error } = await supabase.from(tabela).upsert(registro, { onConflict });
+      if (error) throw error;
+      await recarregar();
+    },
+    [recarregar],
+  );
+
   const valor = useMemo(
-    () => ({ dados, carregando, erro, atualizadoEm, hoje, recarregar, salvar, inserirVarios, apagar, ocultar, setOcultar, moduloInstalado }),
-    [dados, carregando, erro, atualizadoEm, hoje, recarregar, salvar, inserirVarios, apagar, ocultar, moduloInstalado],
+    () => ({ dados, carregando, erro, atualizadoEm, hoje, recarregar, salvar, inserirVarios, apagar, registrar, ocultar, setOcultar, moduloInstalado, rotinaInstalada }),
+    [dados, carregando, erro, atualizadoEm, hoje, recarregar, salvar, inserirVarios, apagar, registrar, ocultar, moduloInstalado, rotinaInstalada],
   );
   return <C.Provider value={valor}>{children}</C.Provider>;
 }

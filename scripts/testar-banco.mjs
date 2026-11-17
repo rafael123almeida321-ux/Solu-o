@@ -18,7 +18,8 @@ await db.exec(`
 await db.exec(readFileSync(new URL("../supabase/schema.sql", import.meta.url), "utf8"));
 await db.exec(`grant select, insert, update, delete on all tables in schema public to authenticated;`);
 await db.exec(readFileSync(new URL("../supabase/migrations/001_comando_v1.sql", import.meta.url), "utf8"));
-ok(true, "schema do CRM + migração 001 aplicados");
+await db.exec(readFileSync(new URL("../supabase/migrations/002_rotina_metas_ia.sql", import.meta.url), "utf8"));
+ok(true, "schema do CRM + migrações 001 e 002 aplicadas");
 
 const A = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 const B = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
@@ -87,20 +88,40 @@ ok(await falha(A, `insert into fin_reviews (semana_inicio, semana_fim, resultado
 // auditoria
 ok((await como(A, `select count(*)::int c from fin_audit`)).rows[0].c >= 4, "alterações financeiras ficam auditadas");
 
+// rotina, metas pessoais e IA (migração 002)
+const bloco = (await como(A, `insert into rot_blocos (titulo, inicio, fim, categoria, habito) values ('Basquete','06:30','08:00','treino','basquete') returning id, user_id`)).rows[0];
+ok(bloco.user_id === A, "bloco de rotina pertence a quem criou");
+await como(A, `insert into rot_registros (data, bloco_id, titulo, habito, status) values ('2026-11-17','${bloco.id}','Basquete','basquete','feito')`);
+await como(A, `insert into rot_registros (data, bloco_id, titulo, habito, status) values ('2026-11-17','${bloco.id}','Basquete','basquete','parcial') on conflict (user_id, data, bloco_id) do update set status = excluded.status`);
+ok((await como(A, `select status from rot_registros`)).rows.length === 1, "marcar o mesmo bloco no mesmo dia não duplica");
+await como(A, `insert into pes_metas (nome, tipo, metrica, unidade, valor_inicial, alvo) values ('Peso','numero','peso','kg',83,93)`);
+await como(A, `insert into pes_medidas (data, metrica, valor) values ('2026-11-17','peso',84.2)`);
+await como(A, `insert into ia_mensagens (papel, conteudo) values ('user','o que faço agora?')`);
+for (const t of ["rot_blocos","rot_registros","pes_metas","pes_medidas","ia_mensagens"]) {
+  ok((await como(B, `select * from ${t}`)).rows.length === 0, `B não vê ${t} de A`);
+}
+ok(await falha(B, `insert into rot_registros (data, bloco_id, status) values ('2026-11-17','${bloco.id}','feito')`), "B não registra usando bloco de A");
+ok(await falha(A, `insert into rot_blocos (titulo, inicio, fim, dias) values ('x','08:00','09:00','{9}')`), "dia da semana inválido é recusado");
+
 // restauração (tudo ou nada, só nos dados do usuário)
 const snap = async (u) => {
   const t = async (q) => (await como(u, q)).rows;
-  return { esquema: "clyent-comando", versao_esquema: 1, dados: {
+  return { esquema: "clyent-comando", versao_esquema: 2, dados: {
     settings: await t(`select * from fin_settings`), contas: await t(`select * from fin_accounts`), categorias: await t(`select * from fin_categories`),
     frentes: await t(`select * from fin_frentes`), metas: await t(`select * from fin_goals`), historico_metas: await t(`select * from fin_goal_history`),
     marcos: await t(`select * from fin_milestones`), dividas: await t(`select * from fin_debts`), recorrencias: await t(`select * from fin_recurrences`),
-    lancamentos: await t(`select * from fin_entries`), tarefas: await t(`select * from fin_tasks`), revisoes: await t(`select * from fin_reviews order by created_at`) } };
+    lancamentos: await t(`select * from fin_entries`), tarefas: await t(`select * from fin_tasks`), revisoes: await t(`select * from fin_reviews order by created_at`),
+    rotina: await t(`select * from rot_blocos`), registros_rotina: await t(`select * from rot_registros`), metas_pessoais: await t(`select * from pes_metas`), medidas: await t(`select * from pes_medidas`) } };
 };
 const backupA = await snap(A);
 await como(B, `insert into fin_accounts (nome) values ('conta do B')`);
 await como(A, `insert into fin_entries (tipo, status, valor_centavos, descricao, conta_id, data_pagamento) values ('entrada','realizado',999,'depois do backup','${contaA.id}','2026-11-21')`);
 const r = (await como(A, `select fin_restaurar($1::jsonb) r`, [JSON.stringify(backupA)])).rows[0].r;
 ok(r.lancamentos === backupA.dados.lancamentos.length, "restauração volta exatamente ao backup");
+ok(r.blocos_rotina === 1 && r.metas_pessoais === 1, "restauração v2 traz rotina e metas pessoais");
+const v1 = JSON.parse(JSON.stringify(backupA)); v1.versao_esquema = 1;
+await como(A, `select fin_restaurar($1::jsonb)`, [JSON.stringify(v1)]);
+ok((await como(A, `select count(*)::int c from rot_blocos`)).rows[0].c === 1, "backup antigo (v1) restaura finanças sem apagar a rotina");
 ok((await como(A, `select count(*)::int c from fin_reviews`)).rows[0].c === 2, "restauração recria revisões e correções");
 ok((await como(B, `select count(*)::int c from fin_accounts`)).rows[0].c === 2, "restauração de A não mexe nos dados de B");
 ok(await falha(A, `update fin_reviews set funcionou='x'`), "depois da restauração as revisões continuam imutáveis");

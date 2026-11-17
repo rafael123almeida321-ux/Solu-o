@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { ClipboardCheck, ClipboardCopy, Download, FileSpreadsheet, Home, Plus, Rocket, Target, Trophy, Upload, UsersRound, Wallet } from "lucide-react";
+import { Bot, CalendarClock, Dumbbell, Sparkles, ClipboardCheck, ClipboardCopy, Download, FileSpreadsheet, Home, Plus, Rocket, Target, Trophy, Upload, UsersRound, Wallet } from "lucide-react";
 import { Campo, Secao, Sheet } from "../../components/ui";
 import { useToast } from "../../context/ToastContext";
 import { supabase } from "../../lib/supabase";
@@ -62,14 +62,20 @@ export default function Mais() {
       </div>
 
       <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
+        <Atalho to="/rotina" icone={<CalendarClock size={20} />} t="Minha rotina" />
+        <Atalho to="/metas" icone={<Dumbbell size={20} />} t="Metas pessoais" />
+        <Atalho to="/assistente" icone={<Bot size={20} />} t="Sócio IA" />
         <Atalho to="/caixa" icone={<Wallet size={20} />} t="Caixa" />
         <Atalho to="/frentes" icone={<Rocket size={20} />} t="Frentes e ações" />
         <Atalho to="/meta" icone={<Target size={20} />} t="Meta e plano" />
         <Atalho to="/revisao" icone={<ClipboardCheck size={20} />} t="Revisão semanal" />
         <Atalho to="/crm" icone={<Home size={20} />} t="Início do CRM" />
                 <Atalho to="/equipe" icone={<Trophy size={20} />} t="Equipe" />
+        <Atalho to="/agente" icone={<Sparkles size={20} />} t="Agente do CRM" />
         <Atalho to="/equipes" icone={<UsersRound size={20} />} t="Trocar equipe" />
       </div>
+
+      <PerfilIA />
 
       <Secao titulo="Revisão com o Claude">
         <Cartao className="space-y-2 text-[13.5px]">
@@ -237,5 +243,39 @@ function Atalho({ to, icone, t }: { to: string; icone: React.ReactNode; t: strin
       <span className="text-neon">{icone}</span>
       {t}
     </Link>
+  );
+}
+
+function PerfilIA() {
+  const { dados, salvar } = useFin();
+  const toast = useToast();
+  const [texto, setTexto] = useState(String(dados.ajustes?.preferencias?.perfil_ia ?? ""));
+  return (
+    <Secao titulo="Sobre mim (o Sócio IA lê isso)">
+      <Cartao className="space-y-2">
+        <textarea
+          className="campo min-h-[120px]"
+          value={texto}
+          onChange={(e) => setTexto(e.target.value)}
+          placeholder="Quem você é, como gosta que falem com você, prioridades do momento, o que não pode faltar no seu dia…"
+          maxLength={3000}
+        />
+        <button
+          className="btn btn-sec w-full"
+          onClick={async () => {
+            try {
+              const preferencias = { ...(dados.ajustes?.preferencias ?? {}), perfil_ia: texto.trim() };
+              await salvar("fin_settings", dados.ajustes ? { id: dados.ajustes.user_id, preferencias } : { preferencias, capacidade_semanal_horas: null });
+              toast("Salvo — o Sócio IA vai usar isso");
+            } catch (e) {
+              toast(erroMsg(e), "erro");
+            }
+          }}
+        >
+          Salvar
+        </button>
+        <p className="text-[12px] text-dim">O Sócio IA usa a Groq: a cada pergunta ele recebe um resumo dos seus dados do app (sem senhas, e-mail ou número de conta).</p>
+      </Cartao>
+    </Secao>
   );
 }

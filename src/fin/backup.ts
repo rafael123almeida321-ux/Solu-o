@@ -4,7 +4,7 @@ import { validaData } from "./datas";
 import type { DadosFin } from "./tipos";
 
 export const ESQUEMA = "clyent-comando";
-export const VERSAO_ESQUEMA = 1;
+export const VERSAO_ESQUEMA = 2;
 
 export interface Backup {
   esquema: typeof ESQUEMA;
@@ -23,6 +23,10 @@ export interface Backup {
     lancamentos: unknown[];
     tarefas: unknown[];
     revisoes: unknown[];
+    rotina: unknown[];
+    registros_rotina: unknown[];
+    metas_pessoais: unknown[];
+    medidas: unknown[];
   };
 }
 
@@ -44,6 +48,10 @@ export function montarBackup(d: DadosFin, agora = new Date()): Backup {
       lancamentos: d.lancamentos,
       tarefas: d.tarefas,
       revisoes: d.revisoes,
+      rotina: d.blocos,
+      registros_rotina: d.registros,
+      metas_pessoais: d.metasPessoais,
+      medidas: d.medidas,
     },
   };
 }
@@ -92,7 +100,12 @@ const REGRAS: Record<string, { obrigatorios: string[]; centavos?: string[]; data
   },
   tarefas: { obrigatorios: ["id", "titulo", "status"], centavos: ["potencial_caixa_centavos"], datas: ["prazo", "foco_em"], refs: [["frente_id", "frentes"]] },
   revisoes: { obrigatorios: ["id", "semana_inicio", "semana_fim", "created_at"], datas: ["semana_inicio", "semana_fim"], refs: [["corrige_id", "revisoes"]] },
+  rotina: { obrigatorios: ["id", "titulo", "dias", "inicio", "fim"], refs: [["frente_id", "frentes"]] },
+  registros_rotina: { obrigatorios: ["id", "data", "status"], datas: ["data"], refs: [["bloco_id", "rotina"]] },
+  metas_pessoais: { obrigatorios: ["id", "nome", "tipo"], datas: ["data_inicio", "prazo"] },
+  medidas: { obrigatorios: ["id", "data", "metrica", "valor"], datas: ["data"] },
 };
+const SO_V2 = new Set(["rotina", "registros_rotina", "metas_pessoais", "medidas"]);
 
 export function validarBackup(entrada: unknown): Validacao {
   const erros: string[] = [];
@@ -104,7 +117,8 @@ export function validarBackup(entrada: unknown): Validacao {
   const versao = Number(b.versao_esquema);
   if (!Number.isInteger(versao)) erros.push("Backup sem versão de esquema.");
   else if (versao > VERSAO_ESQUEMA) erros.push(`Backup de uma versão mais nova do app (${versao}). Atualize o app antes de restaurar.`);
-  else if (versao < VERSAO_ESQUEMA) erros.push(`Backup da versão ${versao}, que este app não sabe converter.`);
+  else if (versao < 1) erros.push(`Backup da versão ${versao}, que este app não sabe converter.`);
+  else if (versao === 1) avisos.push("Backup da versão 1 (só dinheiro): sua rotina e metas pessoais atuais serão mantidas.");
   const d = b.dados as Obj | undefined;
   if (!d || typeof d !== "object") {
     erros.push("Backup sem a seção de dados.");
@@ -115,7 +129,7 @@ export function validarBackup(entrada: unknown): Validacao {
   for (const tabela of Object.keys(REGRAS)) {
     const linhas = d[tabela];
     if (linhas === undefined) {
-      avisos.push(`Seção "${tabela}" ausente — será restaurada vazia.`);
+      if (!(SO_V2.has(tabela) && versao === 1)) avisos.push(`Seção "${tabela}" ausente — será restaurada vazia.`);
       ids[tabela] = new Set();
       contagens[tabela] = 0;
       continue;

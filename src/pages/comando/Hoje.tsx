@@ -14,6 +14,7 @@ import { FormLancamento, FormLiquidar, FormTarefa } from "../../fin/formularios"
 import type { Lancamento, Tarefa } from "../../fin/tipos";
 import { Barra, BotaoOcultar, Cartao, Explica, Pill, Valor } from "../../fin/ui";
 import { EstadoModulo } from "./EstadoModulo";
+import { AgendaHoje, MetasPessoaisResumo } from "./HojeRotina";
 
 export default function Hoje() {
   const { nome, user } = useAuth();
@@ -68,6 +69,98 @@ export default function Hoje() {
         </div>
         <BotaoOcultar />
       </div>
+
+      <AgendaHoje />
+
+      <MetasPessoaisResumo />
+
+      {/* Prioridades */}
+      <Secao
+        titulo="3 prioridades de hoje"
+        acao={
+          <Link to="/frentes" className="text-[13px] font-semibold text-neon">
+            Todas as ações
+          </Link>
+        }
+      >
+        {prios.length === 0 ? (
+          <Cartao className="text-sm text-mute">
+            Nenhuma ação aberta.{" "}
+            <button onClick={() => setForm("tarefa")} className="font-semibold text-neon">
+              Criar a primeira
+            </button>
+          </Cartao>
+        ) : (
+          <ol className="space-y-2">
+            {prios.map(({ tarefa: t, pontuacao, fixada }, i) => {
+              const f = t.frente_id ? frentes.get(t.frente_id) : null;
+              const atraso = t.prazo ? difDias(hoje, t.prazo) : null;
+              return (
+                <li key={t.id} className="cartao p-3.5">
+                  <div className="flex items-start gap-3">
+                    <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-s3 text-xs font-bold text-neon">{i + 1}</span>
+                    <button onClick={() => setEditarTarefa(t)} className="min-w-0 flex-1 text-left">
+                      <p className="font-semibold leading-snug">{t.titulo}</p>
+                      {t.proximo_passo && <p className="mt-0.5 text-[13px] text-mute">→ {t.proximo_passo}</p>}
+                      <div className="mt-1.5 flex flex-wrap gap-1.5">
+                        {f && <Pill>{f.nome}</Pill>}
+                        {t.prazo && <Pill tom={atraso !== null && atraso < 0 ? "alto" : atraso === 0 ? "medio" : "neutro"}>{atraso !== null && atraso < 0 ? "atrasada" : `até ${dataCurta(t.prazo)}`}</Pill>}
+                        {t.tempo_min && <Pill>{t.tempo_min} min</Pill>}
+                        {fixada && <Pill tom="ok">fixada</Pill>}
+                      </div>
+                      <p className="mt-1.5 text-[12px] text-dim">
+                        {t.motivo ? `Por quê: ${t.motivo}` : `Por quê: ${pontuacao.partes.filter((p) => p.pontos > 0).map((p) => p.rotulo).join(", ")}`}
+                      </p>
+                      {t.resultado_esperado && <p className="text-[12px] text-dim">Resultado esperado: {t.resultado_esperado}</p>}
+                    </button>
+                    <div className="flex flex-col gap-1.5">
+                      <button onClick={() => concluir(t)} className="rounded-lg border border-neon/40 p-2 text-neon hover:bg-neon/10" aria-label={`Concluir ${t.titulo}`}>
+                        <Check size={16} />
+                      </button>
+                      <button onClick={() => fixar(t, !fixada)} className="rounded-lg border border-line p-2 text-mute hover:text-ink" aria-label={fixada ? "Desafixar" : "Fixar para hoje"}>
+                        {fixada ? <PinOff size={16} /> : <Pin size={16} />}
+                      </button>
+                    </div>
+                  </div>
+                </li>
+              );
+            })}
+          </ol>
+        )}
+        {followups > 0 && (
+          <Link to="/crm" className="mt-2 flex items-center justify-between rounded-xl border border-line bg-s1 px-3.5 py-2.5 text-[13.5px]">
+            <span>
+              <b>{followups}</b> follow-up(s) do CRM pra hoje
+            </span>
+            <ChevronRight size={16} className="text-mute" />
+          </Link>
+        )}
+      </Secao>
+
+      <h2 className="titulo-sec pt-2">Dinheiro</h2>
+      {/* Alertas */}
+      {avisos.length > 0 && (
+        <div className="space-y-2">
+          {avisos.map((a, i) => (
+            <Link
+              key={i}
+              to={a.link ?? "#"}
+              className={cls(
+                "flex items-start gap-2.5 rounded-xl border px-3.5 py-2.5 text-[13.5px]",
+                a.nivel === "alto" && "border-quente/40 bg-quente/10 text-[#ffd2cc]",
+                a.nivel === "medio" && "border-morno/40 bg-morno/10 text-morno",
+                a.nivel === "info" && "border-line bg-s1 text-mute",
+              )}
+            >
+              <AlertTriangle size={16} className="mt-0.5 shrink-0" aria-hidden />
+              <span>
+                <span className="sr-only">{a.nivel === "alto" ? "Atenção alta: " : a.nivel === "medio" ? "Atenção: " : "Aviso: "}</span>
+                {a.texto}
+              </span>
+            </Link>
+          ))}
+        </div>
+      )}
 
       {/* Meta */}
       {meta && prog ? (
@@ -151,93 +244,6 @@ export default function Hoje() {
           </button>
         </div>
       </div>
-
-      {/* Alertas */}
-      {avisos.length > 0 && (
-        <div className="space-y-2">
-          {avisos.map((a, i) => (
-            <Link
-              key={i}
-              to={a.link ?? "#"}
-              className={cls(
-                "flex items-start gap-2.5 rounded-xl border px-3.5 py-2.5 text-[13.5px]",
-                a.nivel === "alto" && "border-quente/40 bg-quente/10 text-[#ffd2cc]",
-                a.nivel === "medio" && "border-morno/40 bg-morno/10 text-morno",
-                a.nivel === "info" && "border-line bg-s1 text-mute",
-              )}
-            >
-              <AlertTriangle size={16} className="mt-0.5 shrink-0" aria-hidden />
-              <span>
-                <span className="sr-only">{a.nivel === "alto" ? "Atenção alta: " : a.nivel === "medio" ? "Atenção: " : "Aviso: "}</span>
-                {a.texto}
-              </span>
-            </Link>
-          ))}
-        </div>
-      )}
-
-      {/* Prioridades */}
-      <Secao
-        titulo="3 prioridades de hoje"
-        acao={
-          <Link to="/frentes" className="text-[13px] font-semibold text-neon">
-            Todas as ações
-          </Link>
-        }
-      >
-        {prios.length === 0 ? (
-          <Cartao className="text-sm text-mute">
-            Nenhuma ação aberta.{" "}
-            <button onClick={() => setForm("tarefa")} className="font-semibold text-neon">
-              Criar a primeira
-            </button>
-          </Cartao>
-        ) : (
-          <ol className="space-y-2">
-            {prios.map(({ tarefa: t, pontuacao, fixada }, i) => {
-              const f = t.frente_id ? frentes.get(t.frente_id) : null;
-              const atraso = t.prazo ? difDias(hoje, t.prazo) : null;
-              return (
-                <li key={t.id} className="cartao p-3.5">
-                  <div className="flex items-start gap-3">
-                    <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-s3 text-xs font-bold text-neon">{i + 1}</span>
-                    <button onClick={() => setEditarTarefa(t)} className="min-w-0 flex-1 text-left">
-                      <p className="font-semibold leading-snug">{t.titulo}</p>
-                      {t.proximo_passo && <p className="mt-0.5 text-[13px] text-mute">→ {t.proximo_passo}</p>}
-                      <div className="mt-1.5 flex flex-wrap gap-1.5">
-                        {f && <Pill>{f.nome}</Pill>}
-                        {t.prazo && <Pill tom={atraso !== null && atraso < 0 ? "alto" : atraso === 0 ? "medio" : "neutro"}>{atraso !== null && atraso < 0 ? "atrasada" : `até ${dataCurta(t.prazo)}`}</Pill>}
-                        {t.tempo_min && <Pill>{t.tempo_min} min</Pill>}
-                        {fixada && <Pill tom="ok">fixada</Pill>}
-                      </div>
-                      <p className="mt-1.5 text-[12px] text-dim">
-                        {t.motivo ? `Por quê: ${t.motivo}` : `Por quê: ${pontuacao.partes.filter((p) => p.pontos > 0).map((p) => p.rotulo).join(", ")}`}
-                      </p>
-                      {t.resultado_esperado && <p className="text-[12px] text-dim">Resultado esperado: {t.resultado_esperado}</p>}
-                    </button>
-                    <div className="flex flex-col gap-1.5">
-                      <button onClick={() => concluir(t)} className="rounded-lg border border-neon/40 p-2 text-neon hover:bg-neon/10" aria-label={`Concluir ${t.titulo}`}>
-                        <Check size={16} />
-                      </button>
-                      <button onClick={() => fixar(t, !fixada)} className="rounded-lg border border-line p-2 text-mute hover:text-ink" aria-label={fixada ? "Desafixar" : "Fixar para hoje"}>
-                        {fixada ? <PinOff size={16} /> : <Pin size={16} />}
-                      </button>
-                    </div>
-                  </div>
-                </li>
-              );
-            })}
-          </ol>
-        )}
-        {followups > 0 && (
-          <Link to="/crm" className="mt-2 flex items-center justify-between rounded-xl border border-line bg-s1 px-3.5 py-2.5 text-[13.5px]">
-            <span>
-              <b>{followups}</b> follow-up(s) do CRM pra hoje
-            </span>
-            <ChevronRight size={16} className="text-mute" />
-          </Link>
-        )}
-      </Secao>
 
       {/* Compromissos */}
       <Secao

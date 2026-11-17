@@ -184,6 +184,66 @@ export interface Revisao {
   created_at: string;
 }
 
+export type CategoriaBloco = "treino" | "venda" | "trabalho" | "estudo" | "refeicao" | "pessoal" | "casal" | "descanso";
+export interface Bloco {
+  id: string;
+  user_id?: string;
+  titulo: string;
+  dias: number[];
+  inicio: string; // "06:30:00"
+  fim: string;
+  categoria: CategoriaBloco;
+  habito: string;
+  detalhe: string;
+  frente_id: string | null;
+  ativo: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface RegistroRotina {
+  id: string;
+  user_id?: string;
+  data: DataISO;
+  bloco_id: string | null;
+  titulo: string;
+  habito: string;
+  status: "feito" | "parcial" | "pulado";
+  nota: string;
+  created_at?: string;
+}
+
+export interface MetaPessoal {
+  id: string;
+  user_id?: string;
+  nome: string;
+  area: "corpo" | "basquete" | "negocio" | "estudo" | "vida" | "outro";
+  tipo: "numero" | "habito";
+  metrica: string;
+  unidade: string;
+  valor_inicial: number | null;
+  alvo: number | null;
+  direcao: "subir" | "descer";
+  habito: string;
+  vezes_semana: number | null;
+  data_inicio: DataISO;
+  prazo: DataISO | null;
+  status: "ativa" | "concluida" | "arquivada";
+  notas: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface Medida {
+  id: string;
+  user_id?: string;
+  data: DataISO;
+  metrica: string;
+  valor: number;
+  nota: string;
+  created_at?: string;
+}
+
 export interface DadosFin {
   ajustes: Ajustes | null;
   contas: Conta[];
@@ -197,6 +257,10 @@ export interface DadosFin {
   lancamentos: Lancamento[];
   tarefas: Tarefa[];
   revisoes: Revisao[];
+  blocos: Bloco[];
+  registros: RegistroRotina[];
+  metasPessoais: MetaPessoal[];
+  medidas: Medida[];
 }
 
 export const DADOS_VAZIOS: DadosFin = {
@@ -212,4 +276,8 @@ export const DADOS_VAZIOS: DadosFin = {
   lancamentos: [],
   tarefas: [],
   revisoes: [],
+  blocos: [],
+  registros: [],
+  metasPessoais: [],
+  medidas: [],
 };

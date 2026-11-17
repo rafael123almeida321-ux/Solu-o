@@ -22,6 +22,9 @@ const MetaPage = lazy(() => import("./pages/comando/MetaPage"));
 const Frentes = lazy(() => import("./pages/comando/Frentes"));
 const RevisaoPage = lazy(() => import("./pages/comando/Revisao"));
 const Mais = lazy(() => import("./pages/comando/Mais"));
+const Assistente = lazy(() => import("./pages/comando/Assistente"));
+const Rotina = lazy(() => import("./pages/comando/Rotina"));
+const MetasPessoais = lazy(() => import("./pages/comando/MetasPessoais"));
 
 export default function App() {
   const { session, carregando } = useAuth();
@@ -50,6 +53,9 @@ export default function App() {
             <Route path="frentes" element={<Frentes />} />
             <Route path="revisao" element={<RevisaoPage />} />
             <Route path="mais" element={<Mais />} />
+            <Route path="assistente" element={<Assistente />} />
+            <Route path="rotina" element={<Rotina />} />
+            <Route path="metas" element={<MetasPessoais />} />
             <Route path="leads" element={<Leads />} />
             <Route path="leads/novo" element={<LeadForm />} />
             <Route path="leads/:id" element={<LeadDetail />} />

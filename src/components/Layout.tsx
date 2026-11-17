@@ -65,13 +65,13 @@ export default function Layout() {
           </button>
           <div className="ml-auto flex items-center gap-2">
             <Link
-              to="/agente"
+              to="/assistente"
               className={cls(
                 "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[13px] font-semibold transition",
-                local.pathname === "/agente" ? "border-neon bg-neon text-fundo" : "border-neon/50 text-neon hover:bg-neon/10",
+                local.pathname === "/assistente" ? "border-neon bg-neon text-fundo" : "border-neon/50 text-neon hover:bg-neon/10",
               )}
             >
-              <Sparkles size={15} /> Agente
+              <Sparkles size={15} /> Sócio IA
             </Link>
             <Link to="/equipe?aba=conta" aria-label="Minha conta">
               <Avatar id={user?.id ?? "x"} nome={nome || "?"} tamanho={32} />
