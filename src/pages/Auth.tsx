@@ -63,7 +63,7 @@ export default function Auth() {
           <div className="flex items-center gap-3">
             <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-neon font-display text-xl font-black text-fundo">C</div>
             <div className="font-display text-[26px] font-black leading-none tracking-wide">
-              CLYENT<span className="text-neon"> CRM</span>
+              CLYENT<span className="text-neon"> COMANDO</span>
             </div>
           </div>
           <p className="mt-5 text-[22px] font-bold leading-snug">
